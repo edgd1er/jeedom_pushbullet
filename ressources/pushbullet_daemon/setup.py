@@ -36,15 +36,12 @@ setup(
         "Programming Language :: Python",
         "Natural Language :: English",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Utilities"
     ],
     install_requires=[
-          'requests>=1.0.0',
-          'python-magic',
-          'websocket-client',
+          '',
       ]
 )

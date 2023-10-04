@@ -1,10 +1,16 @@
 # jeedom_pushbullet
 Pushbullet plugin for Jeedom
 
+* travail en cours: 
+  * testé uniquement sur rpi4.
+
 # Installation
-Available in the Jeedom market place
-https://www.jeedom.com/market
-https://www.jeedom.com/market/index.php?v=d&p=market&type=plugin&&name=pushbullet
+* manuel via un pull de git ou unzip 
+
+# Differences
+* Adaptations pour Jeedom 4.
+* Adaptation pour python 3.
+* utilisation de packages.json
 
 # Author
-Stéphane Cazeaux
+Basé sur le travail de Stéphane Cazeaux

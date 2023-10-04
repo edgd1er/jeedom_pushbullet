@@ -27,106 +27,110 @@ define('PUSHBULLETME', 'https://api.pushbullet.com/v2/users/me');
 define('PUSHBULLETURLUPLOADREQ', 'https://api.pushbullet.com/v2/upload-request');
 
 if (!function_exists('curl_file_create')) {
-    function curl_file_create($filename, $mimetype = '', $postname = '') {
+    function curl_file_create($filename, $mimetype = '', $postname = '')
+    {
         return "@$filename;filename="
             . ($postname ?: basename($filename))
             . ($mimetype ? ";type=$mimetype" : '');
     }
 }
 
-class pushbullet extends eqLogic {
+class pushbullet extends eqLogic
+{
 
 
-        public function doCurlRequest ($_url, $_method, $_data=null, $_dataType = 'json', $_useAuth=true) {
-            log::add('pushbullet', 'debug', '('.$this->getId().') curl request '.$_method.' '.$_url.' ('.serialize($_data).')');
-            $curl = curl_init();
-        
-            // Servira a setter le dernier timestamp sur le dernier push de la liste
-            curl_setopt($curl, CURLOPT_URL, $_url);
-            switch ($_method) {
-                case 'GET':
-                    curl_setopt($curl, CURLOPT_HTTPGET, true);
-                    break;
+    public function doCurlRequest($_url, $_method, $_data = null, $_dataType = 'json', $_useAuth = true)
+    {
+        log::add('pushbullet', 'debug', '(' . $this->getId() . ') curl request ' . $_method . ' ' . $_url . ' (' . json_encode($_data) . ')');
+        $curl = curl_init();
 
-                case 'POST':
-                    curl_setopt($curl, CURLOPT_POST, true);
-                    break;
+        // Servira a setter le dernier timestamp sur le dernier push de la liste
+        curl_setopt($curl, CURLOPT_URL, $_url);
+        switch ($_method) {
+            case 'GET':
+                curl_setopt($curl, CURLOPT_HTTPGET, true);
+                break;
 
-                case 'DELETE':
-                    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-                    break;
+            case 'POST':
+                curl_setopt($curl, CURLOPT_POST, true);
+                break;
 
-            }
-
-            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-
-            if ($_useAuth) {
-                curl_setopt($curl, CURLOPT_USERPWD, $this->getConfiguration('token') . ':');
-                curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-            }
-            if ($_data) {
-                switch ($_dataType) {
-                    case 'json':
-                        $dataJson = json_encode($_data);
-                        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($dataJson)));
-                        curl_setopt($curl, CURLOPT_POSTFIELDS, $dataJson);
-                        break;
-                    case 'file':
-                        curl_setopt($curl, CURLOPT_POSTFIELDS, $_data);
-                        break;
-
-
-                }
-            }
-
-            curl_setopt($curl, CURLOPT_FAILONERROR, true);
-
-
-            $curlData = curl_exec($curl);
-            $errno = curl_errno($curl);
-            if ($errno) {
-                log::add('pushbullet', 'debug', '('.$this->getId().') curl error ('.$errno.')');
-            }
-            log::add('pushbullet', 'debug', '('.$this->getId().') curl response ('.serialize($curlData).')');
-
-            curl_close($curl);
-
-            return array($curlData, $errno);
+            case 'DELETE':
+                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
 
         }
 
-    public static function pull($_options) {
-      foreach (eqLogic::byType('pushbullet') as $pushbullet) {
-                if (is_object($pushbullet) && $pushbullet->getConfiguration('isPushEnabled')) {
-                    $pushbullet->checkLastPush();
-                }
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+        if ($_useAuth) {
+            curl_setopt($curl, CURLOPT_USERPWD, $this->getConfiguration('token') . ':');
+            curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        }
+        if ($_data) {
+            switch ($_dataType) {
+                case 'json':
+                    $dataJson = json_encode($_data);
+                    curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($dataJson)));
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $dataJson);
+                    break;
+                case 'file':
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, $_data);
+                    break;
+
+
             }
+        }
+
+        curl_setopt($curl, CURLOPT_FAILONERROR, true);
+
+
+        $curlData = curl_exec($curl);
+        $errno = curl_errno($curl);
+        if ($errno) {
+            log::add('pushbullet', 'debug', '(' . $this->getId() . ') curl error (' . $errno . ')');
+        }
+        log::add('pushbullet', 'debug', '(' . $this->getId() . ') curl response (' . json_encode($curlData) . ')');
+
+        curl_close($curl);
+
+        return array($curlData, $errno);
+
     }
 
-    public static function activateReminder($_options) {
+    public static function pull($_options)
+    {
+        foreach (eqLogic::byType('pushbullet') as $pushbullet) {
+            if (is_object($pushbullet) && $pushbullet->getConfiguration('isPushEnabled')) {
+                $pushbullet->checkLastPush();
+            }
+        }
+    }
+
+    public static function activateReminder($_options)
+    {
         $pushbullet = pushbullet::byId($_options['pushbullet_id']);
-        log::add('pushbullet', 'debug', 'activate reminder '.serialize($_options));
-    
+        log::add('pushbullet', 'debug', 'activate reminder ' . json_encode($_options));
+
         if (is_object($pushbullet)) {
             foreach ($pushbullet->getCmd() as $cmd) {
-                if($cmd->getConfiguration('isPushChannel')) {
-                    log::add('pushbullet', 'debug', '('.$pushbullet->getId().') send event reminder '.$_options['body']);
+                if ($cmd->getConfiguration('isPushChannel')) {
+                    log::add('pushbullet', 'debug', '(' . $pushbullet->getId() . ') send event reminder ' . $_options['body']);
                     $cmd->event($_options['body']);
                     $pushbullet->setLastValue($_options['body']);
                     // Lancement des interactions
-                    if ($pushbullet->getConfiguration('isInteractionEnabled'))
-                    {
+                    if ($pushbullet->getConfiguration('isInteractionEnabled')) {
                         $reply = interactQuery::tryToReply(trim($_options['body']), array());
                         if (trim($reply) != '') {
                             $messageBody = '';
                             if (!$pushbullet->getConfiguration('dismissInitialCommandeInReply')) {
-                                $messageBody = 'Commande initiale : '.$_options['body'];
+                                $messageBody = 'Commande initiale : ' . $_options['body'];
                             }
-                            
+
                             foreach ($pushbullet->getCmd() as $cmdResponse) {
-                                if($cmdResponse->getConfiguration('isResponseDevice')) {
+                                if ($cmdResponse->getConfiguration('isResponseDevice')) {
                                     $cmdResponse->execute(array('title' => $reply, 'message' => $messageBody));
                                 }
                             }
@@ -136,18 +140,19 @@ class pushbullet extends eqLogic {
             }
         }
     }
-    
-    public function checkLastPush() {
-        log::add('pushbullet', 'debug', 'check last push on '.$this->getName().' ('.$this->getId().')');
+
+    public function checkLastPush()
+    {
+        log::add('pushbullet', 'debug', 'check last push on ' . $this->getName() . ' (' . $this->getId() . ')');
         $eventBodyToSend = '';
         foreach ($this->getCmd() as $cmd) {
-            if($cmd->getConfiguration('isPushChannel')) {
+            if ($cmd->getConfiguration('isPushChannel')) {
                 $events = $this->getLastPush($cmd->getConfiguration('deviceid'));
 
-                log::add('pushbullet', 'debug', '('.$this->getId().') new events '.serialize($events));
-                
+                log::add('pushbullet', 'debug', '(' . $this->getId() . ') new events ' . json_encode($events));
+
                 foreach ($events as $event) {
-                    if ($event['body'])    {
+                    if ($event['body']) {
                         // vérification des commandes avancés
                         $sendEvent = true;
 
@@ -158,39 +163,33 @@ class pushbullet extends eqLogic {
                         Sinon, c'est le nouveau format:
                                 /4 hours/tv off
 
-                        */ 
+                        */
                         if (strtolower(substr($event['body'], 0, 2) == 'p ')) {
                             $lines = explode('\n', $event['body']);
                             $eventBodies = array_slice($lines, 1);
                             // la date se trouve après le 'p '
                             $eventProgDate = substr($lines[0], 2);
-                            log::add('pushbullet', 'debug', '('.$this->getId().') push with programm, retrocompatible, date: '. $eventProgDate);
+                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') push with programm, retrocompatible, date: ' . $eventProgDate);
 
-                            log::add('pushbullet', 'debug', '('.$this->getId().') new event '.serialize($eventBodies));
-                        }
-                        else if (strtolower($event['body'][0] == '/')) {
+                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') new event ' . json_encode($eventBodies));
+                        } else if (strtolower($event['body'][0] == '/')) {
                             $lines = preg_split('/\//', $event['body'], -1, PREG_SPLIT_NO_EMPTY);
                             $eventBodies = array_slice($lines, 1);
                             // la date se trouve après le 'p '
                             $eventProgDate = $lines[0];
-                            log::add('pushbullet', 'debug', '('.$this->getId().') push with programm, new format, date: '. $eventProgDate);
-                            log::add('pushbullet', 'debug', '('.$this->getId().') new event '.serialize($eventBodies));
+                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') push with programm, new format, date: ' . $eventProgDate);
+                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') new event ' . json_encode($eventBodies));
 
-                        }
-                        else {
+                        } else {
                             $lines = explode('\n', $event['body']);
                             $eventBody = $lines[0];
                             $fullEventBody = $event['body'];
                             $eventProgDate = '';
-                            log::add('pushbullet', 'debug', '('.$this->getId().') push without programm');
-                            log::add('pushbullet', 'debug', '('.$this->getId().') new event '.$eventBody);
+                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') push without programm');
+                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') new event ' . $eventBody);
                         }
 
 
-                        
-                        
-                        
-                        
                         if ($eventProgDate) {
 
                             // PUSH REMINDER
@@ -209,21 +208,20 @@ class pushbullet extends eqLogic {
                                     }
 
                                     $cronDate = date('i', $timestamp) . ' ' . date('H', $timestamp) . ' ' . date('d', $timestamp) . ' ' . date('m', $timestamp) . ' * ' . date('Y', $timestamp);
-                                    log::add('pushbullet', 'debug', '('.$this->getId().') crontDate '.$cronDate);
+                                    log::add('pushbullet', 'debug', '(' . $this->getId() . ') crontDate ' . $cronDate);
 
                                     $cron->setSchedule($cronDate);
                                     $cron->save();
                                 }
                                 $sendEvent = false;
-                            }
-                            else {
-                                log::add('pushbullet', 'debug', '('.$this->getId().') Reminder failed ');
+                            } else {
+                                log::add('pushbullet', 'debug', '(' . $this->getId() . ') Reminder failed ');
                                 $eventBody = 'Reminder failed';
                             }
                         }
-                        
+
                         if ($sendEvent) {
-                            
+
                             $eventBodyToSend = $fullEventBody;
                             /*
                             MODIFICATION TEMPORAIRE : on sauvegarde l'eventBody à déclencher. Du coup, seul le dernier sera pris en compte
@@ -232,28 +230,27 @@ class pushbullet extends eqLogic {
                             $this->setLastValue($eventBody);
                             */
                             // Lancement des interactions
-                            if ($this->getConfiguration('isInteractionEnabled'))
-                            {
+                            if ($this->getConfiguration('isInteractionEnabled')) {
                                 $reply = interactQuery::tryToReply(trim($eventBody), array())['reply'];
-                                log::add('pushbullet', 'debug', '('.$this->getId().') interaction reply : '.$reply);
+                                log::add('pushbullet', 'debug', '(' . $this->getId() . ') interaction reply : ' . $reply);
                                 if (trim($reply) != '') {
                                     $messageBody = '';
                                     if (!$this->getConfiguration('dismissInitialCommandeInReply')) {
-                                        $messageBody = 'Commande initiale : '.$eventBody;
+                                        $messageBody = 'Commande initiale : ' . $eventBody;
                                     }
-                                    
+
                                     foreach ($this->getCmd() as $cmd_response) {
                                         // 3 cas possibles ici, dans l'ordre:
                                         // 1: pas d'envoi de la réponse à la source de la commande, donc on envoie aux devices sélectionnés
                                         // 2: envoi de la réponse à la source de la commande, et on trouve le device source
                                         // 3: envoi de la réponse à la source de la commande, on ne trouve pas le device source donc on envoie aux devices sélectionnés
-                                        
-                                        if(    (!$this->getConfiguration('sendBackReponseToSource') && $cmd_response->getConfiguration('isResponseDevice'))
+
+                                        if ((!$this->getConfiguration('sendBackReponseToSource') && $cmd_response->getConfiguration('isResponseDevice'))
                                             || ($this->getConfiguration('sendBackReponseToSource') && $cmd_response->getConfiguration('deviceid') == $event['source'])
                                             || ($this->getConfiguration('sendBackReponseToSource') && !$event['source'] && $cmd_response->getConfiguration('isResponseDevice'))) {
 
-                                            log::add('pushbullet', 'debug', '('.$this->getId().') Send reply : '.$cmd_response->getConfiguration('deviceid'));
-                                            
+                                            log::add('pushbullet', 'debug', '(' . $this->getId() . ') Send reply : ' . $cmd_response->getConfiguration('deviceid'));
+
                                             $cmd_response->execute(array('title' => $reply, 'message' => $messageBody));
                                         }
                                     }
@@ -262,9 +259,9 @@ class pushbullet extends eqLogic {
                         }
                     }
                 }
-                
+
                 if ($eventBodyToSend) {
-                    log::add('pushbullet', 'debug', '('.$this->getId().') Send Event : '.$eventBody);
+                    log::add('pushbullet', 'debug', '(' . $this->getId() . ') Send Event : ' . $eventBody);
                     $cmd->event($eventBodyToSend);
                     $this->setLastValue($eventBodyToSend);
                 }
@@ -272,25 +269,30 @@ class pushbullet extends eqLogic {
         }
     }
 
-    public function getLastTimestamp() {
+    public function getLastTimestamp()
+    {
         return $this->getConfiguration('timestamp');
     }
-    
-    public function setLastTimestamp($timestamp) {
-        $this->setConfiguration('timestamp', $timestamp+1);
+
+    public function setLastTimestamp($timestamp)
+    {
+        $this->setConfiguration('timestamp', $timestamp + 1);
         $this->save();
     }
 
-    public function getLastValue() {
+    public function getLastValue()
+    {
         return $this->getConfiguration('lastvalue');
     }
-    
-    public function setLastValue($lastvalue) {
+
+    public function setLastValue($lastvalue)
+    {
         $this->setConfiguration('lastvalue', $lastvalue);
         $this->save();
     }
 
-    public function getLastPush($pushdeviceid) {
+    public function getLastPush($pushdeviceid)
+    {
         // sendRequest 
         $return = array();
         $bIsFirstPush = true;
@@ -298,23 +300,22 @@ class pushbullet extends eqLogic {
         $timestamp = $this->getLastTimestamp();
         if (!$timestamp) $timestamp = 0;
 
-        list($curlData,$curlerrno) = $this->doCurlRequest(PUSHBULLETURL.'?modified_after='.$timestamp, 'GET');
-        
+        list($curlData, $curlerrno) = $this->doCurlRequest(PUSHBULLETURL . '?modified_after=' . $timestamp, 'GET');
+
         if ($curlData) {
             $jsonData = json_decode($curlData, true);
-            foreach ($jsonData['pushes'] as $push)
-            {
-                log::add('pushbullet', 'debug', '('.$this->getId().') new push'.serialize($push));
+            foreach ($jsonData['pushes'] as $push) {
+                log::add('pushbullet', 'debug', '(' . $this->getId() . ') new push' . json_encode($push));
                 if ($this->getConfiguration('listenAllPushes')) {
-                    log::add('pushbullet', 'debug', '('.$this->getId().') listen all pushes');
+                    log::add('pushbullet', 'debug', '(' . $this->getId() . ') listen all pushes');
                 }
 
-                if ($push['active'] 
-                        && (
-                                    ($push['target_device_iden'] == $pushdeviceid)
-                            ||    ($this->getConfiguration('listenAllPushes') && $push['source_device_iden'] != $pushdeviceid && !$push['target_device_iden']))) {
+                if ($push['active']
+                    && (
+                        ($push['target_device_iden'] == $pushdeviceid)
+                        || ($this->getConfiguration('listenAllPushes') && $push['source_device_iden'] != $pushdeviceid && !$push['target_device_iden']))) {
 
-                    log::add('pushbullet', 'debug', '('.$this->getId().') push targeted to jeedom : '.$push['body'].' from '.$push['source_device_iden']);
+                    log::add('pushbullet', 'debug', '(' . $this->getId() . ') push targeted to jeedom : ' . $push['body'] . ' from ' . $push['source_device_iden']);
                     $return[] = array('timestamp' => $push['modified'], 'body' => $push['body'], 'title' => $push['title'], 'source' => $push['source_device_iden']);
 
                 }
@@ -324,50 +325,48 @@ class pushbullet extends eqLogic {
                     $bIsFirstPush = false;
                 }
             }
-        }
-        else {
-            log::add('pushbullet', 'error', '('.$this->getId().') curl error ('.$curlerrno.')');
+        } else {
+            log::add('pushbullet', 'error', '(' . $this->getId() . ') curl error (' . $curlerrno . ')');
             //throw new Exception(__('Erreur Pushbullet Cron : '.curl_error($curl), __FILE__));
         }
 
         return array_reverse($return);
-            
+
     }
 
 
-  public function preUpdate() {
+    public function preUpdate()
+    {
         $bIsPushEnabled = $this->getConfiguration('isPushEnabled');
         $jeedomDeviceName = $this->getConfiguration('jeedomDeviceName');
         $currentId = $this->getId();
 
         $this->setCategory('Communication', 1);
 
-    if ($this->getConfiguration('token') == '') {
-        throw new Exception(__('Le Token ne peut être vide', __FILE__));
-    }
-        else if (! $this->testToken($this->getConfiguration('token'))) {
-            log::add('pushbullet', 'error', '('.$this->getId().') token invalide');
-        throw new Exception(__('Erreur Pushbullet : Le Token fourni est invalide', __FILE__));
-        }
-        else {
-            
+        if ($this->getConfiguration('token') == '') {
+            throw new Exception(__('Le Token ne peut être vide', __FILE__));
+        } else if (!$this->testToken($this->getConfiguration('token'))) {
+            log::add('pushbullet', 'error', '(' . $this->getId() . ') token invalide');
+            throw new Exception(__('Erreur Pushbullet : Le Token fourni est invalide', __FILE__));
+        } else {
+
             // On récupère les commandes déjà créées, dans le cas d'un UPDATE. Vide s'il s'agit d'une première création
             foreach ($this->getCmd() as $cmd) {
                 if (!$bIsPushEnabled && $cmd->getConfiguration('isPushChannel')) {
-                    log::add('pushbullet', 'debug', '('.$this->getId().') remove push device because push is disabled');
+                    log::add('pushbullet', 'debug', '(' . $this->getId() . ') remove push device because push is disabled');
                     $cmd->remove();
                 }
             }
-            
+
             // On verifie si le nom de device pusbullet n'est pas deja utilise
             if ($bIsPushEnabled) {
                 foreach (eqLogic::byType('pushbullet') as $pushbullet) {
                     if ($pushbullet->getId() != $currentId) {
                         foreach ($pushbullet->getCmd() as $cmd) {
-    
-                        if ($cmd->getConfiguration('isPushChannel') && strtolower($cmd->getName()) == strtolower($jeedomDeviceName)) {
-                                log::add('pushbullet', 'error', '('.$this->getId().') nom "'.$jeedomDeviceName.'" déjà utilisé');
-                                throw new Exception(__('Erreur Pushbullet : Nom de device "'.$jeedomDeviceName.'" déjà utilisé', __FILE__));
+
+                            if ($cmd->getConfiguration('isPushChannel') && strtolower($cmd->getName()) == strtolower($jeedomDeviceName)) {
+                                log::add('pushbullet', 'error', '(' . $this->getId() . ') nom "' . $jeedomDeviceName . '" déjà utilisé');
+                                throw new Exception(__('Erreur Pushbullet : Nom de device "' . $jeedomDeviceName . '" déjà utilisé', __FILE__));
                             }
                         }
                     }
@@ -375,10 +374,11 @@ class pushbullet extends eqLogic {
             }
         }
     }
-    
 
-    public function postSave(){
-         log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE');
+
+    public function postSave()
+    {
+        #log::add('pushbullet', 'debug', 'PostSave: this: ' . json_encode($this));
         $arrayExistingCmd = array();
         $arrayExistingCmdNames = array();
         $jeedomDeviceExitsAtPushbullet = 0;
@@ -387,44 +387,41 @@ class pushbullet extends eqLogic {
         $jeedomDeviceName = $this->getConfiguration('jeedomDeviceName');
         $jeedomDeviceId = "";
         if (!$jeedomDeviceName) {
-            $jeedomDeviceName = 'jeedom_'.$this->id;
+            $jeedomDeviceName = 'jeedom_' . $this->id;
         }
-    
-        
-        $arrayEquipmentCmd = $this->getCmd();
-		log::add('pushbullet', 'debug', serialize($arrayEquipmentCmd));
 
+
+        $arrayEquipmentCmd = $this->getCmd();
+        #log::add('pushbullet', 'debug', 'PostSave: getCmd: '. json_encode($arrayEquipmentCmd));
         // On récupère les commandes déjà créées, dans le cas d'un UPDATE. Vide s'il s'agit d'une première création
         foreach ($arrayEquipmentCmd as $cmd) {
             if ($cmd->GetConfiguration('isPushChannel')) {
                 $jeedomDeviceId = $cmd->getConfiguration('deviceid');
-				log::add('pushbullet', 'debug', 'Existing jeedom device ID: '.$jeedomDeviceId);
+                log::add('pushbullet', 'debug', 'postSave: jeedomDeviceId: ' . $jeedomDeviceId);
                 if ($cmd->getName() != $jeedomDeviceName) {
+                    log::add('pushbullet', 'debug', 'postSave: Remove cmd: ' . json_encode($cmd) . ', jdmDeviceId:' . $jeedomDeviceId);
                     $cmd->remove();
-                }
-                else {
-					log::add('pushbullet', 'debug', 'Adding to arrayExistingCmd');
-					$arrayExistingCmd[$jeedomDeviceId] = 1;
+                } else {
+                    log::add('pushbullet', 'debug', 'postSave: Adding to arrayExistingCmd: ' . json_encode($cmd));
+                    $arrayExistingCmd[$jeedomDeviceId] = 1;
                     $arrayExistingCmdNames[] = $cmd->getName();
                 }
-            }
-            else {
+            } else {
                 $arrayExistingCmd[$cmd->GetConfiguration('deviceid')] = 1;
                 $arrayExistingCmdNames[] = $cmd->getName();
             }
-			$cmd->save();
+            $cmd->save();
         }
 
         $arrayExistingCmdNames_countValues = array_count_values($arrayExistingCmdNames);
-        
-        // A ce stade on a le jeedomDeviceName (ou celui par défaut si non défini) et le jeedomDeviceId s'il est déjà connu
 
+        // A ce stade on a le jeedomDeviceName (ou celui par défaut si non défini) et le jeedomDeviceId s'il est déjà connu
         // On récupère les devices créés sur PUSHBULLET
         $arrayDevices = $this->GetDevices();
-        
+
         // Pour stocker les ID de tous les devices SAUF le device de push
         $arrayAllDevices = array();
-        
+
         // On marque les commandes à conserver (si ça reste à 1, il sera à supprimer)
         foreach ($arrayDevices as $deviceEntry) {
             if (isset($arrayExistingCmd[$deviceEntry['deviceid']])) {
@@ -435,54 +432,55 @@ class pushbullet extends eqLogic {
         // On supprime les commandes obsolètes
         foreach ($arrayEquipmentCmd as $cmd) {
             if ($arrayExistingCmd[$cmd->GetConfiguration('deviceid')] == 1 && $cmd->GetConfiguration('deviceid') != 'all' && !$cmd->GetConfiguration('isPushChannel')) {
-                log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE remove cmd '.$cmd->getName());
+                log::add('pushbullet', 'debug', 'POSTUPDATE remove cmd: id: ' . $this->getId() . ', cmd name: ' . $cmd->getName());
                 $cmd->remove();
             }
         }
 
         // on crée les commandes des devices PUSHBULLET si elles n'existent pas encore
         foreach ($arrayDevices as $deviceEntry) {
-            log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE '.$deviceEntry['name']);
+            log::add('pushbullet', 'debug', 'PostSave: id: ' . $this->getId() . ', deviceEntry: ' . implode(',', $deviceEntry));
 
             if ($deviceEntry['deviceid'] != $jeedomDeviceId) {
                 $arrayAllDevices[] = $deviceEntry['deviceid'];
             }
-            
+
             $name = $deviceEntry['name'];
 
             if ($arrayExistingCmdNames_countValues[$name] > 0) {
-                $name = $name . " (".$arrayExistingCmdNames_countValues[$name].")";
+                $name = $name . " (" . $arrayExistingCmdNames_countValues[$name] . ")";
             }
 
             $arrayExistingCmdNames[] = $deviceEntry['name'];
             $arrayExistingCmdNames_countValues = array_count_values($arrayExistingCmdNames);
-			if ($deviceEntry['deviceid'] != $jeedomDeviceId && $deviceEntry['name'] != $jeedomDeviceName) {
-				log::add('pushbullet', 'debug', 'Checking CMD');
-				$device = $this->getCmd(null, $deviceEntry['deviceid']);
-				if (!is_object($device)) {
-					log::add('pushbullet', 'debug', 'CREATE NEW CMD');
-					$device = new pushbulletCmd();
-					$device->setName(__($name, __FILE__));
-				}
-				$device->setLogicalId($deviceEntry['deviceid']);
-				$device->setEqLogic_id($this->id);
-				$device->setConfiguration('deviceid', $deviceEntry['deviceid']);
-				$device->setUnite('');
-				$device->setType('action');
-				$device->setSubType('message');
-				$device->setIsHistorized(0);
-				$device->save();
-			}
-            // Device spécifique pour le push (type info)
+            if ($deviceEntry['deviceid'] != $jeedomDeviceId && $deviceEntry['name'] != $jeedomDeviceName) {
+                log::add('pushbullet', 'debug', 'PostSave: Checking cmd for entry: ('.json_encode($deviceEntry).')');
+                $device = $this->getCmd(null, $deviceEntry['deviceid']);
+                #empty device, no name, id
+                if (sizeof($deviceEntry,1)>1){
+                    if (!is_object($device)) {
+                        log::add('pushbullet', 'debug', 'PostSave: create new cmd: ' . json_encode($deviceEntry));
+                        $device = new pushbulletCmd();
+                        $device->setName(__($name, __FILE__));
+                    }
+                    $device->setLogicalId($deviceEntry['deviceid']);
+                    $device->setEqLogic_id($this->id);
+                    $device->setConfiguration('deviceid', $deviceEntry['deviceid']);
+                    $device->setUnite('');
+                    $device->setType('action');
+                    $device->setSubType('message');
+                    $device->setIsHistorized(0);
+                    $device->save();
+                } else {
+                    log::add('pushbullet', 'debug', 'PostSave: not creating cmd: empty device: ' . json_encode(array_values($deviceEntry)));
+                }
+            } // Device spécifique pour le push (type info)
             else {
-
                 $jeedomDeviceExitsAtPushbullet = $deviceEntry;
-                
                 if (isset($arrayExistingCmd[$deviceEntry['deviceid']])) {
                     // Le device push existe déjà, on ne le recrée pas
-                    log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE push device already exists');
+                    log::add('pushbullet', 'debug', 'PostSave: id: ' . $this->getId() . ', no need to create an existing push device: ' . json_encode($deviceEntry));
                     $bCreatePushDevice = false;
-
                     // si push désactivé, on supprime le device
                 }
             }
@@ -490,26 +488,23 @@ class pushbullet extends eqLogic {
 
         // Création du device PUSH s'il n'existe pas encore
         if ($bCreatePushDevice && $bIsPushEnabled) {
-			$jeedomDeviceId = "";
+            $jeedomDeviceId = "";
             if (!$jeedomDeviceExitsAtPushbullet) {
-                log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE create jeedom device on pushbullet.com');
+                log::add('pushbullet', 'debug', 'PostSave: id: ' . $this->getId() . ', create jeedom device on pushbullet.com: '. $jeedomDeviceName);
                 $jeedomDevice = $this->createJeedomDevice($jeedomDeviceName);
                 $jeedomDeviceId = $jeedomDevice['deviceid'];
                 $deviceTimestamp = $jeedomDevice['timestamp'];
-            }
-            else {
-                //$jeedomDeviceId = $jeedomDeviceExitsAtPushbullet['deviceid'];
+            } else {
                 $deviceTimestamp = 0;
-                
             }
-            log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE create jeedom device CMD with id '.$jeedomDeviceId);
-			$device = $this->getCmd(null, 'pushChannel');
-			if (!is_object($device)) {
-				log::add('pushbullet', 'debug', 'CREATE NEW CMD');
-				$device = new pushbulletCmd();
-				$device->setName(__($name, __FILE__));
-			}
-			$device->setName($jeedomDeviceName);
+            log::add('pushbullet', 'debug', 'PostSave: id: ' . $this->getId() . ', create jeedom device CMD with id ' . $jeedomDeviceId);
+            $device = $this->getCmd(null, 'pushChannel');
+            if (!is_object($device)) {
+                $device = new pushbulletCmd();
+                $device->setName(__($name, __FILE__));
+                log::add('pushbullet', 'debug', 'PostSave: create new cmd: '.json_encode($device));
+            }
+            $device->setName($jeedomDeviceName);
             $device->setEqLogic_id($this->id);
             $device->setConfiguration('deviceid', $jeedomDeviceId);
             $device->setConfiguration('isPushChannel', '1');
@@ -519,20 +514,15 @@ class pushbullet extends eqLogic {
             $device->setSubType('string');
             $device->setIsHistorized(0);
             $device->save(true);
-
             //$this->setLastTimestamp($deviceTimestamp);
-            
-        }
-        else if ($bIsPushEnabled && $jeedomDeviceId) {
-            log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE update jeedom device');
+        } else if ($bIsPushEnabled && $jeedomDeviceId) {
+            log::add('pushbullet', 'debug', 'PostSave: id: ' . $this->getId() . ', jeedomDeviceName: ' . $jeedomDeviceName .
+                ', update jeedom device id: '. $jeedomDeviceId .', '.$jeedomDeviceName);
             $this->updateJeedomDevice($jeedomDeviceId, $jeedomDeviceName);
         }
-
-        
-        
         // device 'ALL'
         if (!isset($arrayExistingCmd['all'])) {
-            log::add('pushbullet', 'debug', '('.$this->getId().') POSTUPDATE create device ALL with '.implode(',', $arrayAllDevices));
+            log::add('pushbullet', 'debug', 'PostSave: id: ' . $this->getId() . ', create device ALL with ' . json_encode($arrayAllDevices));
             $device = new pushbulletCmd();
             $device->setName(__('Tous les devices', __FILE__));
             $device->setEqLogic_id($this->id);
@@ -544,7 +534,7 @@ class pushbullet extends eqLogic {
             $device->setIsHistorized(0);
             $device->save();
         }
-        
+
         // On update le device ALL
         foreach ($arrayEquipmentCmd as $cmd) {
             if ($cmd->getConfiguration('deviceid') == 'all') {
@@ -553,111 +543,107 @@ class pushbullet extends eqLogic {
             }
         }
     }
-    
-  public function getDevices() {
+
+    public function getDevices()
+    {
         // sendRequest 
         $return = array();
-        list($curlData,$curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES.'?active=true', 'GET');
-
+        list($curlData, $curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES . '?active=true', 'GET');
         $curlData = json_decode($curlData, true);
-
         if ($curlData) {
             foreach ($curlData['devices'] as $device) {
                 if ($device['active'] == 'true') {
                     $return[] = array('name' => $device['nickname'], 'deviceid' => $device['iden']);
                 }
             }
-        }
-        else {
-            log::add('pushbullet', 'error', '('.$this->getId().') error on GET DEVICES');
+        } else {
+            log::add('pushbullet', 'error', '(' . $this->getId() . ') error on GET DEVICES');
             //throw new Exception(__('Erreur Pushbullet GetDevices : '.curl_error($curl), __FILE__));
         }
-        log::add('pushbullet', 'debug', '('.$this->getId().') GET DEVICES result '.serialize($return));
+        log::add('pushbullet', 'debug', 'getDevices: id: ' . $this->getId() . ', data: ' . json_encode($curlData));
+        log::add('pushbullet', 'debug', 'getDevices: id: ' . $this->getId() . ',  return: ' . json_encode($return));
         return $return;
-  }
+    }
 
-  public function preRemove() {
-      log::add('pushbullet', 'debug', '('.$this->getId().') PREREMOVE');
+    public function preRemove()
+    {
+        log::add('pushbullet', 'debug', '(' . $this->getId() . ') PREREMOVE');
 
         // recherche et suppression du device jeedom 
         foreach ($this->getCmd() as $cmd) {
             if ($cmd->getConfiguration('isPushChannel') == 1) {
-                log::add('pushbullet', 'debug', '('.$this->getId().') PREREMOVE remove Jeedom device on pushbullet.com '.$cmd->getConfiguration('deviceid'));
+                log::add('pushbullet', 'debug', 'preRemove: id: ' . $this->getId() . ' remove Jeedom device on pushbullet.com ' . $cmd->getConfiguration('deviceid'));
                 $this->removeJeedomDevice($cmd->getConfiguration('deviceid'));
             }
         }
         return true;
-  }
-    
-  public function createJeedomDevice($jeedomDeviceName) {
-        log::add('pushbullet', 'debug', '('.$this->getId().') CREATEJEEDOMDEVICE '.$jeedomDeviceName);
+    }
+
+    public function createJeedomDevice($jeedomDeviceName)
+    {
+        log::add('pushbullet', 'debug', 'createJeedomDevice: id: ' . $this->getId() . ' jeedomDeviceName: ' . $jeedomDeviceName);
         $arrayData = array('nickname' => $jeedomDeviceName, 'type' => 'stream');
-        
-        list($curlData,$curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES, 'POST', $arrayData);
+        list($curlData, $curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES, 'POST', $arrayData);
         $curlData = json_decode($curlData, true);
         if ($curlData) {
             $return = array('deviceid' => $curlData['iden'], 'timestamp' => $curlData['modified']);
-        }
-        else {
+        } else {
             $return = array();
-            log::add('pushbullet', 'error', '('.$this->getId().') error on CREATEJEEDOMDEVICE');
+            log::add('pushbullet', 'error', 'createJeedomDevice: ' . $this->getId() . ') error');
             //throw new Exception(__('Erreur Pushbullet CreateJeedomDevice : '.curl_error($curl), __FILE__));
         }
-        
         return $return;
-  }
+    }
 
-    public function updateJeedomDevice($deviceId, $jeedomDeviceName) {
-        log::add('pushbullet', 'debug', '('.$this->getId().') UPDATEJEEDOMDEVICE '.$jeedomDeviceName);
-        
+    public function updateJeedomDevice($deviceId, $jeedomDeviceName)
+    {
+        log::add('pushbullet', 'debug', 'updateJeedomDevice: id: ' . $deviceId . ', jeedomDeviceName: ' . $jeedomDeviceName . ', id:' . $this->getId());
         $arrayData = array('nickname' => $jeedomDeviceName);
-        list($curlData,$curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES.'/'.$deviceId, 'POST', $arrayData);
+        list($curlData, $curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES . '/' . $deviceId, 'POST', $arrayData);
         $curlData = json_decode($curlData, true);
         if ($curlData) {
             $return = array('deviceid' => $curlData['iden'], 'timestamp' => $curlData['modified']);
-        }
-        else {
+        } else {
             $return = array();
-            log::add('pushbullet', 'error', '('.$this->getId().') error on UPDATEJEEDOMDEVICE');
-            //throw new Exception(__('Erreur Pushbullet UpdateJeedomDevice : '.curl_error($curl), __FILE__));
+            log::add('pushbullet', 'error', 'updateJeedomDevice: id: ' . $deviceId . ', jeedomDeviceName: ' . $jeedomDeviceName . ', id:' . $this->getId() . 'error ');
         }
-        
         return $return;
-  }
+    }
 
-  public function removeJeedomDevice($jeedomDeviceId) {
-        log::add('pushbullet', 'debug', '('.$this->getId().') REMOVEJEEDOMDEVICE '.$jeedomDeviceId);
+    public function removeJeedomDevice($jeedomDeviceId)
+    {
+        log::add('pushbullet', 'debug', 'removeJeedomDevice: id: ' . $this->getId() . ', jeedomDeviceId: ' . $jeedomDeviceId);
+        list($curlData, $curlerrno) = $this->doCurlRequest(PUSHBULLETURLDEVICES . '/' . $jeedomDeviceId, 'DELETE');
+    }
 
-        list($curlData,$curlerrno)  = $this->doCurlRequest(PUSHBULLETURLDEVICES.'/'.$jeedomDeviceId, 'DELETE');
-        
-  }
-    
-    function getJeedomDeviceId() {
+    function getJeedomDeviceId()
+    {
         $jeedomDeviceId = '';
         foreach ($this->getCmd() as $cmd) {
             if ($cmd->getConfiguration('isPushChannel') == 1) {
                 $jeedomDeviceId = $cmd->getConfiguration('deviceid');
             }
         }
-        log::add('pushbullet', 'debug', '('.$this->getId().') GETJEEDOMDEVICEID '.$jeedomDeviceId);
+        log::add('pushbullet', 'debug', 'getJeedomDeviceId: id: ' . $this->getId() . ', jeedomDeviceId: ' . $jeedomDeviceId);
         return $jeedomDeviceId;
     }
-    
-  public function testToken($token) {
-        
-        list($curlData,$curlerrno) = $this->doCurlRequest(PUSHBULLETME, 'GET');
 
+    public function testToken($token)
+    {
+        list($curlData, $curlerrno) = $this->doCurlRequest(PUSHBULLETME, 'GET');
         if ($curlerrno) {
             return false;
         }
         return true;
-  }
-    
-  public function getShowOnChild() {
-    return true;
-  }
+    }
 
-    public static function event() {
+    public function getShowOnChild()
+    {
+        return true;
+    }
+
+    public static function event()
+    {
         $cmd = pushbulletCmd::byId(init('id'));
         if (!is_object($cmd)) {
             throw new Exception(__('Commande ID pushbullet inconnu : ', __FILE__) . init('id'));
@@ -687,36 +673,43 @@ class pushbullet extends eqLogic {
     }
 */
     /***************
+     *
+     * Jeedom deamon management functions
+     ****************/
 
-        Jeedom deamon management functions
-    ****************/
-
-    public static function deamon_info() {
+    public static function deamon_info()
+    {
         $return = array();
         $return['log'] = 'pushbullet';
         $return['state'] = 'ok';
         $return['launchable'] = 'ok';
-
-    foreach (eqLogic::byType('pushbullet') as $pushbullet) {
+        foreach (eqLogic::byType('pushbullet') as $pushbullet) {
             if (is_object($pushbullet) && $pushbullet->getConfiguration('isPushEnabled')) {
+                #log::add('pushbullet', 'debug', 'daemon running: ' . $pushbullet->deamonRunning() === false);
                 if (!$pushbullet->deamonRunning()) {
                     $return['state'] = 'nok';
                 }
             }
         }
-        return $return;            
+
+        log::add('pushbullet', 'debug', 'daemon info: ' . implode(',', $return));
+        return $return;
     }
 
-    public static function deamon_stop() {
-      foreach (eqLogic::byType('pushbullet') as $pushbullet) {
+    public static function deamon_stop()
+    {
+        foreach (eqLogic::byType('pushbullet') as $pushbullet) {
             $pushbullet->stopDeamon();
         }
     }
 
-    public static function deamon_start() {
-      foreach (eqLogic::byType('pushbullet') as $pushbullet) {
+    public static function deamon_start()
+    {
+        log::add('pushbullet', 'debug', 'daemon_start: begin');
+        foreach (eqLogic::byType('pushbullet') as $pushbullet) {
             if (is_object($pushbullet) && $pushbullet->getConfiguration('isPushEnabled')) {
                 if (!$pushbullet->deamonRunning()) {
+                    log::add('pushbullet', 'debug', 'daemon_start: calling runDaemon');
                     $pushbullet->runDeamon();
                 }
             }
@@ -724,85 +717,103 @@ class pushbullet extends eqLogic {
     }
 
     /***************
-        END
-        Jeedom deamon management functions
-    ****************/
+     * END
+     * Jeedom deamon management functions
+     ****************/
 
 
+    public function runDeamon()
+    {
+        $daemon_path = realpath(dirname(__FILE__) . '/../../ressources/pushbullet_daemon');
 
-  public function runDeamon() {
-    $daemon_path = realpath(dirname(__FILE__) . '/../../ressources/pushbullet_daemon');
-
-    $cmd = 'nice -n 19 /usr/bin/python ' . $daemon_path . '/pushbullet.py '.$this->getConfiguration('token');
-
-    $result = exec('nohup ' . $cmd . ' > /dev/null 2>&1 &');
-    if (strpos(strtolower($result), 'error') !== false || strpos(strtolower($result), 'traceback') !== false) {
-        log::add('pushbullet', 'error', $result);
-        return false;
-    }
-
-    sleep(2);
-    if (!$this->deamonRunning()) {
-        sleep(10);
-        if (!$this->deamonRunning()) {
+        $cmd = 'nice -n 19 /usr/bin/python3 ' . $daemon_path . '/pushbulletd.py ' . $this->getConfiguration('token');
+        $result = exec('nohup ' . $cmd . ' > /dev/null 2>&1 &', $output, $code);
+        log::add('pushbullet', 'debug', 'runDeamon: cmd: ' . $cmd . ', code: ' . $code . ', output: ' . implode(',', $output));
+        if (strpos(strtolower($result), 'error') !== false || strpos(strtolower($result), 'traceback') !== false) {
+            log::add('pushbullet', 'error', $result);
             return false;
         }
-    }
-  }
 
-  public function deamonRunning() {
-    $pid_file = realpath(dirname(__FILE__) . '/../../../../tmp/pushbullet.'.$this->getConfiguration('token').'.pid');
-    if (!file_exists($pid_file)) {
-        $pid = jeedom::retrievePidThread('pushbullet.py');
-        if ($pid != '' && is_numeric($pid)) {
-            exec('kill -9 ' . $pid);
+        sleep(2);
+        if ($this->deamonRunning() == false) {
+            sleep(10);
+            if (!$this->deamonRunning() === false) {
+                return false;
+            }
         }
-        return false;
     }
-    $pid = trim(file_get_contents($pid_file));
-    if ($pid == '' || !is_numeric($pid)) {
-        $pid = jeedom::retrievePidThread('pushbullet.py');
-        if ($pid != '' && is_numeric($pid)) {
-            exec('kill -9 ' . $pid);
+
+    public function deamonRunning()
+    {
+        $pid_file = jeedom::getTmpFolder(__class__) . '/pushbullet.' . $this->getConfiguration('token') . '.pid';
+        #if file does not exists, kill existing daemons.
+        if (!file_exists($pid_file)) {
+            $pid = jeedom::retrievePidThread('pushbulletd.py ' . $this->getConfiguration('token'));
+            log::add('pushbullet', 'debug', 'no pid_file: ' . $pid_file . ', retrievePidThread: ' . $pid);
+            if ($pid != '') {
+                if (is_numeric($pid)) {
+                    log::add('pushbullet', 'debug', ':  kill is_numeric: ' . $pid);
+                    exec('kill -9 ' . $pid);
+                } else {
+                    foreach (explode(' ', $pid) as $p) {
+                        log::add('pushbullet', 'debug', ': foreach kill: ' . $p);
+                        exec('kill -9 ' . $p);
+                    }
+                }
+            }
+            return false;
         }
-        return false;
-    }
-    $result = exec('cat /proc/' . $pid . '/cmdline | grep "pushbullet" | wc -l', $output, $retcode);
-    if (($retcode == 0 && $result == 0 && file_exists($pid_file) ) || $retcode != 0) {
+        $pid = trim(file_get_contents($pid_file));
+        if (is_numeric($pid)) {
+            log::add('pushbullet', 'debug', 'pid_file: found: ' . $pid_file . ', pid: ' . $pid);
+            return true;
+        }
+
+        if ($pid == '' || !is_numeric($pid) || !$pid) {
+            $pid = jeedom::retrievePidThread('pushbulletd.py ' . $this->getConfiguration('token'));
+            log::add('pushbullet', 'debug', 'empty pidfile, retrievePidThread: ' . $pid);
+        }
+        $result = exec('cat /proc/' . $pid . '/cmdline | grep "pushbullet" | wc -l', $output, $retcode);
+        log::add('pushbullet', 'debug', 'daemon runnning cat: ' . $retcode . ', output: ' . implode(',', $output));
+        if (($retcode == 0 && $result == 0 && file_exists($pid_file)) || $retcode != 0) {
+        }
         unlink($pid_file);
         return false;
     }
-    return true;
-  }
 
-  public function stopDeamon() {
-    if (!$this->deamonRunning()) {
-        return true;
+    public
+    function stopDeamon()
+    {
+        if (!$this->deamonRunning()) {
+            return true;
+        }
+        $pid_file = jeedom::getTmpFolder('pushbullet') . '/pushbullet.' . $this->getConfiguration('token') . '.pid';
+        if (!file_exists($pid_file)) {
+            return true;
+        }
+        $pid = intval(file_get_contents($pid_file));
+        $kill = posix_kill($pid, 15);
+        $retry = 0;
+        while (!$kill && $retry < 10) {
+            $kill = posix_kill($pid, 9);
+            $retry++;
+        }
+        return !$kill;
     }
-    $pid_file = dirname(__FILE__) . '/../../../../tmp/pushbullet.'.$this->getConfiguration('token').'.pid';
-    if (!file_exists($pid_file)) {
-        return true;
-    }
-    $pid = intval(file_get_contents($pid_file));
-    $kill = posix_kill($pid, 15);
-    $retry = 0;
-    while (!$kill && $retry < 10) {
-        $kill = posix_kill($pid, 9);
-        $retry++;
-    }
-    return !$kill;
-  }
 
-    public static function stopAllDeamon() {
-    foreach (eqLogic::byType('pushbullet') as $pushbullet) {
+    public
+    static function stopAllDeamon()
+    {
+        foreach (eqLogic::byType('pushbullet') as $pushbullet) {
             $pushbullet->stopDeamon();
         }
-  }
+    }
 
-  
+
 }
 
-class pushbulletCmd extends cmd {
+class pushbulletCmd extends cmd
+{
     /*     * *************************Attributs****************************** */
 
 
@@ -810,66 +821,87 @@ class pushbulletCmd extends cmd {
 
 
     /*     * *********************Methode d'instance************************* */
-    public function execute($_options = null) {
-        log::add('pushbullet', 'debug', 'execute '.serialize($_options));
-      $eqLogic_pushbullet = $this->getEqLogic();
-        
-            if ($this->getConfiguration('isPushChannel') == 1) {
-                return $eqLogic_pushbullet->getLastValue();
+    public function execute($_options = null)
+    {
+        log::add('pushbullet', 'debug', 'execute ' . json_encode($_options));
+        $eqLogic_pushbullet = $this->getEqLogic();
+
+        if ($this->getConfiguration('isPushChannel') == 1) {
+            return $eqLogic_pushbullet->getLastValue();
+        } else {
+            if ($_options === null) {
+                throw new Exception(__('Les options de la fonction ne peuvent etre null', __FILE__));
             }
-            else {
-                if ($_options === null) {
-                    throw new Exception(__('Les options de la fonction ne peuvent etre null', __FILE__));
+            /*
+            Depuis la 2.12, on retire le titre par defaut
+            if ($_options['title'] == '') {
+                $_options['title'] = __('[Jeedom] - Notification', __FILE__);
+            }
+            */
+            // Case 1 : file from CAMERA plugin
+            if (array_key_exists('files', $_options) && is_array($_options['files']) && is_file($_options['files'][0])) {
+                log::add('pushbullet', 'debug', 'file detected');
+                $file = $_options['files'][0];
+
+                // obtenir le type mime
+                $finfo = new finfo(FILEINFO_MIME, '/usr/share/misc/magic');
+
+                /* Récupère le mime-type d'un fichier spécifique */
+                $filetype = $finfo->file($file);
+
+
+                $arrayData = array('file_name' => basename($file), 'file_type' => $filetype);
+                log::add('pushbullet', 'debug', 'R');
+                list($curlData, $curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURLUPLOADREQ, 'POST', $arrayData);
+                $curlData = json_decode($curlData, true);
+
+                if ($curlerrno) {
+                    log::add('pushbullet', 'error', 'Erreur requête d\'upload');
+                    throw new Exception(__('Erreur requête pushbullet', __FILE__));
+
                 }
-                /*
-                Depuis la 2.12, on retire le titre par defaut
-                if ($_options['title'] == '') {
-                    $_options['title'] = __('[Jeedom] - Notification', __FILE__);
+
+                $uploadUrl = $curlData['upload_url'];
+                $fileUrl = $curlData['file_url'];
+
+                // envoi du fichier
+
+                $cfile = curl_file_create($file, $filetype, 'file');
+                $arrayData = array('file' => $cfile);
+
+                list($curlData, $curlerrno) = $eqLogic_pushbullet->doCurlRequest($uploadUrl, 'POST', $arrayData, 'file', false);
+
+                if ($curlerrno) {
+                    log::add('pushbullet', 'error', 'Erreur d\'envoi de fichier');
+                    throw new Exception(__('Erreur requête pushbullet', __FILE__));
                 }
-                */
-                // Case 1 : file from CAMERA plugin
-                if (array_key_exists('files', $_options) && is_array($_options['files']) && is_file($_options['files'][0])) {
-                    log::add('pushbullet', 'debug', 'file detected');
-                    $file = $_options['files'][0];
 
-                     // obtenir le type mime
-                    $finfo = new finfo(FILEINFO_MIME, '/usr/share/misc/magic');
+                $arrayData = array('type' => 'file',
+                    'body' => '',
+                    'file_name' => basename($file),
+                    'file_type' => $filetype,
+                    'file_url' => $fileUrl);
 
-                    /* Récupère le mime-type d'un fichier spécifique */
-                    $filetype = $finfo->file($file);
+                $jeedomDeviceId = $eqLogic_pushbullet->getJeedomDeviceId();
 
+                if ($jeedomDeviceId) {
+                    $arrayData['source_device_iden'] = $jeedomDeviceId;
+                }
 
-                    $arrayData = array('file_name' => basename($file), 'file_type' => $filetype);
-                    log::add('pushbullet', 'debug', 'R');
-                    list($curlData,$curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURLUPLOADREQ, 'POST', $arrayData);
-                    $curlData = json_decode($curlData, true);
+                if ($this->getConfiguration('deviceid') != 'all') {
+                    $arrayData['device_iden'] = $this->getConfiguration('deviceid');
+                }
 
-                    if ($curlerrno) {
-                        log::add('pushbullet', 'error', 'Erreur requête d\'upload');
-                        throw new Exception(__('Erreur requête pushbullet', __FILE__));
-                        
-                    }
-
-                    $uploadUrl = $curlData['upload_url'];
-                    $fileUrl = $curlData['file_url'];
-
-                    // envoi du fichier
-
-                    $cfile = curl_file_create($file, $filetype, 'file');
-                    $arrayData = array('file' => $cfile);
-
-                    list($curlData,$curlerrno) = $eqLogic_pushbullet->doCurlRequest($uploadUrl, 'POST', $arrayData, 'file', false);
-
-                    if ($curlerrno) {
-                        log::add('pushbullet', 'error', 'Erreur d\'envoi de fichier');
-                        throw new Exception(__('Erreur requête pushbullet', __FILE__));                    
-                    }
-
-                    $arrayData = array('type' => 'file', 
-                                                         'body' => '', 
-                                                         'file_name' => basename($file),
-                                                         'file_type' => $filetype,
-                                                         'file_url' => $fileUrl);
+                list($curlData, $curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURL, 'POST', $arrayData);
+            } // Case 2 : URL
+            else if ($_options['title'] && filter_var($_options['title'], FILTER_VALIDATE_URL)) {
+                $testimage = getimagesize($_options['title']);
+                if ($testimage['mime']) {
+                    $arrayData = array('type' => 'file',
+                        'body' => '',
+                        'file_name' => basename('test'),
+                        'file_type' => $testimage['mime'],
+                        'file_url' => $_options['title']);
 
                     $jeedomDeviceId = $eqLogic_pushbullet->getJeedomDeviceId();
 
@@ -878,68 +910,47 @@ class pushbulletCmd extends cmd {
                     }
 
                     if ($this->getConfiguration('deviceid') != 'all') {
-                            $arrayData['device_iden'] = $this->getConfiguration('deviceid');
+                        $arrayData['device_iden'] = $this->getConfiguration('deviceid');
                     }
 
-                    list($curlData,$curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURL, 'POST', $arrayData);
+                    list($curlData, $curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURL, 'POST', $arrayData);
+
                 }
-                // Case 2 : URL
-                else if ($_options['title'] && filter_var($_options['title'], FILTER_VALIDATE_URL)) {
-                    $testimage = getimagesize($_options['title']);
-                    if ($testimage['mime']) {
-                        $arrayData = array('type' => 'file', 
-                                                             'body' => '', 
-                                                             'file_name' => basename('test'),
-                                                             'file_type' => $testimage['mime'],
-                                                             'file_url' => $_options['title']);
-
-                        $jeedomDeviceId = $eqLogic_pushbullet->getJeedomDeviceId();
-
-                        if ($jeedomDeviceId) {
-                            $arrayData['source_device_iden'] = $jeedomDeviceId;
-                        }
-
-                        if ($this->getConfiguration('deviceid') != 'all') {
-                                $arrayData['device_iden'] = $this->getConfiguration('deviceid');
-                        }
-
-                        list($curlData,$curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURL, 'POST', $arrayData);
-
-                    }
+            } // Case 3 : notification classique
+            else {
+                if ($_options['message'] == '' && $_options['title'] == '') {
+                    throw new Exception(__('Le message et le sujet ne peuvent être vide', __FILE__));
                 }
-                // Case 3 : notification classique
-                else {
-                    if ($_options['message'] == '' && $_options['title'] == '') {
-                        throw new Exception(__('Le message et le sujet ne peuvent être vide', __FILE__));
-                    }
                 // prepare data
 
-                    $arrayData = array('type' => 'note', 'title' => $_options['title'], 'body' => $_options['message']);
-                    $jeedomDeviceId = $eqLogic_pushbullet->getJeedomDeviceId();
+                $arrayData = array('type' => 'note', 'title' => $_options['title'], 'body' => $_options['message']);
+                $jeedomDeviceId = $eqLogic_pushbullet->getJeedomDeviceId();
 
-                    if ($jeedomDeviceId) {
-                        $arrayData['source_device_iden'] = $jeedomDeviceId;
-                    }
-
-                    if ($this->getConfiguration('deviceid') != 'all') {
-                            $arrayData['device_iden'] = $this->getConfiguration('deviceid');
-                    }
-
-                    list($curlData,$curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURL, 'POST', $arrayData);
+                if ($jeedomDeviceId) {
+                    $arrayData['source_device_iden'] = $jeedomDeviceId;
                 }
+
+                if ($this->getConfiguration('deviceid') != 'all') {
+                    $arrayData['device_iden'] = $this->getConfiguration('deviceid');
+                }
+
+                list($curlData, $curlerrno) = $eqLogic_pushbullet->doCurlRequest(PUSHBULLETURL, 'POST', $arrayData);
             }
+        }
     }
-    
-    public function preRemove() {
-    $eqLogic_pushbullet = $this->getEqLogic();
+
+    public function preRemove()
+    {
+        $eqLogic_pushbullet = $this->getEqLogic();
         if ($this->getConfiguration('isPushChannel') == 1) {
             $eqLogic_pushbullet->removeJeedomDevice($this->getConfiguration('deviceid'));
         }
     }
 
-	public function dontRemoveCmd() {
-		return true;
-	}
+    public function dontRemoveCmd()
+    {
+        return true;
+    }
 
     /*     * **********************Getteur Setteur*************************** */
 }

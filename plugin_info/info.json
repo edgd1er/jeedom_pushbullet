@@ -4,15 +4,12 @@
 	"description" : "Plugin pour utiliser PushBullet",
 	"licence" : "AGPL",
 	"author" : "Stéphane Cazeaux",
-	"require" : "3.0",
+	"require" : "4.0",
 	"category" : "communication",
-	"hasDependency" : false,
+	"languages": ["fr_FR", "en_US"],
+	"documentation": "https://localhost/plugins/pushbullet/docs/index.html",
+	"compatibility": ["miniplus","rpi", "diy", "v4","docker"],
+	"hasDependency" : true,
 	"hasOwnDeamon" : true,
-	"maxDependancyInstallTime" : 0,
-	"compatibility": [
-		"miniplus",
-		"rpi",
-		"diy",
-		"v4"
-	]
+	"maxDependancyInstallTime" : 0
 }

@@ -21,7 +21,7 @@ include_file('core', 'pushbullet', 'class', 'pushbullet');
 if (php_sapi_name() != 'cli' || isset($_SERVER['REQUEST_METHOD']) || !isset($_SERVER['argc'])) {
     if (config::byKey('api') != init('apikey') && init('apikey') != '') {
         connection::failed();
-        echo 'Clef API non valide, vous n\'etes pas autorisé à effectuer cette action (jeeZwave)';
+        echo 'Clef API non valide, vous n\'etes pas autoris? ? effectuer cette action (jeeZwave)';
         die();
     }
 }
@@ -49,8 +49,4 @@ foreach ($eqLogics as $eqLogic) {
     }
 }
 fclose($fp);
-
-
-	
-
 ?>

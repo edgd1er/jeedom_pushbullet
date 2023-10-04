@@ -19,37 +19,30 @@
 require_once dirname(__FILE__) . '/../../../core/php/core.inc.php';
 
 
-function pushbullet_install() {
+function pushbullet_install()
+{
     $cron = cron::byClassAndFunction('pushbullet', 'pull');
-	if (is_object($cron)) {
+    if (is_object($cron)) {
         $cron->remove();
     }
-/*    if (!is_object($cron)) {
-        $cron = new cron();
-        $cron->setClass('pushbullet');
-        $cron->setFunction('pull');
-        $cron->setEnable(1);
-        $cron->setDeamon(0);
-        $cron->setSchedule('1-59/2 * * * *');
-        $cron->save();
-    }*/
-       
 }
 
-function pushbullet_update() {  
+function pushbullet_update()
+{
     foreach (eqLogic::byType('pushbullet') as $pushbullet) {
         if (!$pushbullet->getConfiguration('listenAllPushes')) {
             $pushbullet->setConfiguration('listenAllPushes', 0);
         }
     }
-	
+
     if (method_exists('pushbullet', 'stopAllDeamon')) {
         pushbullet::stopAllDeamon();
     }
 
 }
 
-function pushbullet_remove() {
+function pushbullet_remove()
+{
     $cron = cron::byClassAndFunction('pushbullet', 'pull');
     if (is_object($cron)) {
         $cron->remove();
@@ -59,4 +52,5 @@ function pushbullet_remove() {
         pushbullet::stopAllDeamon();
     }
 }
+
 ?>
