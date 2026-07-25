@@ -4,13 +4,11 @@
   "apt":{
     "python-dev" :  {"denyDebianHigherEqual" : "11"},
     "python3" : {},
-    "python3-pip" : {},
-    "python3-cffi":{},
-    "python3-gevent-websocket": {}
+    "python3-pip" : {}
   },
   "pip3": {
-    "pushbullet-python": {},
-    "websocket-client": {}
+    "websocket-client": {},
+    "pushbullet.py": {}
   },
   "pre-install" : {
     "script" : {}

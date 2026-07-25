@@ -9,6 +9,8 @@ import sys
 import threading
 from threading import Timer
 
+import json
+import time
 from pushbullet import Listener
 
 logging.basicConfig(level=logging.ERROR)
@@ -103,14 +105,13 @@ def logger_init(name, debug):
     # formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
     formatter = logging.Formatter('%(asctime)s - %(threadName)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
 
+    handler = logging.FileHandler(logfile)
+    handler.setFormatter(formatter)
+
     if debug:
         loglevel = "DEBUG"
         # handler = logging.StreamHandler()
-        handler = logging.FileHandler(logfile)
-    else:
-        handler = logging.FileHandler(logfile)
 
-    handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.getLevelName(loglevel))
@@ -183,7 +184,9 @@ def main():
     logger.debug("Start daemon")
     daemonize()
 
-    s = Listener(api_key=API_KEY,
+    account = {"api_key": API_KEY}
+
+    s = Listener(account,
                  on_push=on_push,
                  http_proxy_host=HTTP_PROXY_HOST,
                  http_proxy_port=HTTP_PROXY_PORT)
