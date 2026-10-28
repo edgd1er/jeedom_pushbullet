@@ -7,7 +7,7 @@
     "python3-pip" : {}
   },
   "pip3": {
-    "websocket-client": {},
+    "websocket": {},
     "pushbullet.py": {}
   },
   "pre-install" : {

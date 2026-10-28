@@ -724,9 +724,14 @@ class pushbullet extends eqLogic
 
     public function runDeamon()
     {
-        $daemon_path = realpath(dirname(__FILE__) . '/../../ressources/pushbullet_daemon');
         # Jeedom install pip in resources/python_venv/
-        $cmd = 'nice -n 19 '.realpath(dirname(__FILE__).'/../../resources/python_venv/bin/python3').' '.$daemon_path . '/pushbulletd.py ' . $this->getConfiguration('token');
+        $base_path = realpath(dirname(__FILE__) . '/../../');
+        $python_path = $base_path . '/resources/python_venv/bin/python3';
+        $daemon_path = $base_path . '/ressources/pushbullet_daemon/pushbulletd.py';
+        $cmd = 'nice -n 19 '
+            . escapeshellarg($python_path) . ' '
+            . escapeshellarg($daemon_path) . ' '
+            . escapeshellarg($this->getConfiguration('token'));
         $result = exec('nohup ' . $cmd . ' > /var/www/html/log/pushbullet_daemon.log 2>&1 &', $output, $code);
         log::add('pushbullet', 'debug', 'runDeamon: cmd: ' . $cmd . ', code: ' . $code . ', output: ' . implode(',', $output));
         if (strpos(strtolower($result), 'error') !== false || strpos(strtolower($result), 'traceback') !== false) {
